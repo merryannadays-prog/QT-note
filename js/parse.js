@@ -153,15 +153,11 @@ const Parse = (() => {
     return { paras: [sentences(joinLines(ls.filter(Boolean)))].filter((p) => p.length), author };
   }
 
-  function mcCheyne(raw) {
-    return clean(raw).split(/[□☐■▢✓✔,，、\n]+/).map((s) => s.trim()).filter(Boolean);
-  }
-
   // '역대상 16:37~43' → { book:'역대상', chapter:'16' }
   function bookChapter(range) {
     const m = String(range || '').match(/^(.+?)\s*(\d+)\s*:/);
     return m ? { book: m[1].trim(), chapter: m[2] } : null;
   }
 
-  return { clean, sentences, paragraphs, header, scripture, commentary, essay, oneVerse, quote, mcCheyne, bookChapter };
+  return { clean, sentences, paragraphs, header, scripture, commentary, essay, oneVerse, quote, bookChapter };
 })();

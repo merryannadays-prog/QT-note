@@ -17,7 +17,6 @@
     { id: 'essay', label: '묵상 에세이', type: 'essay', hint: '제목, 본문, 참고 도서 줄까지 붙여넣어 주세요' },
     { id: 'oneverse', label: '한절 묵상', type: 'oneverse' },
     { id: 'quote', label: '오늘의 명언', type: 'quote', hint: '명언과 “- 인물” 줄까지 붙여넣어 주세요' },
-    { id: 'mccheyne', label: '맥체인 성경 읽기', type: 'mccheyne', hint: '예) □ 왕상 2, □ 갈 6, □ 겔 33' },
     { id: 'card', label: '오늘의 기도 카드', type: 'card' },
   ];
   const ORDER = { scripture: 0, helper: 1, summary: 2, prayer: 40, essay: 50, oneverse: 51, quote: 52 };
@@ -59,9 +58,8 @@
   // ───────── 데이터 ─────────
   const emptyDay = (date) => ({
     date,
-    raw: { header: '', scripture: '', helper: '', summary: '', comm: [''], prayer: '', essay: '', oneverse: '', quote: '', mccheyne: '' },
+    raw: { header: '', scripture: '', helper: '', summary: '', comm: [''], prayer: '', essay: '', oneverse: '', quote: '' },
     marks: [],   // { k, c, t, l, o }
-    checks: {},  // 맥체인 체크
     note: '',
     finished: false,
   });
@@ -234,11 +232,6 @@
         return sec(sid, folded, label(cfg.label, sid, true), `
           <div class="quote">${icon('quote')}${q.paras.map((p) => `<p>${p.map((s) => U(s, '오늘의 명언' + (q.author ? ` · ${q.author}` : ''))).join(' ')}</p>`).join('')}
           ${q.author ? `<div class="author">— ${esc(q.author)}</div>` : ''}</div>`);
-      }
-      case 'mccheyne': {
-        const items = Parse.mcCheyne(raw);
-        return sec(sid, folded, label(cfg.label, sid, true), `<div class="mc-list">${items.map((it) =>
-          `<button class="mc${S.day.checks[it] ? ' on' : ''}" data-act="check" data-item="${esc(it)}"><span class="box">${icon('check')}</span>${esc(it)}</button>`).join('')}</div>`);
       }
     }
     return '';
@@ -663,13 +656,6 @@
         renderDay();
         document.getElementById(`sec-comm${S.day.raw.comm.length - 1}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         break;
-      case 'check': {
-        const it = t.dataset.item;
-        if (S.day.checks[it]) delete S.day.checks[it]; else S.day.checks[it] = true;
-        t.classList.toggle('on', !!S.day.checks[it]);
-        save();
-        break;
-      }
       case 'goto': if (!e.target.closest('.col-del')) gotoUnit(t.dataset.k); break;
       case 'unmark': unmark(t.dataset.k); break;
       case 'finish':

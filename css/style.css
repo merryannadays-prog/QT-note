@@ -252,23 +252,6 @@ textarea { font: inherit; }
 .quote p { margin: 0; font-size: 17px; font-weight: 500; line-height: 1.85; color: var(--ink); }
 .quote .author { margin-top: 12px; text-align: right; font-size: 14px; color: var(--sub); }
 
-/* 맥체인 */
-.mc-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.mc {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 40px; padding: 0 16px 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: #fff;
-  font-size: 15px; color: var(--text);
-  transition: all .25s var(--ease);
-}
-.mc .box { width: 18px; height: 18px; border-radius: 6px; border: 1.5px solid #c9d1cd; display: grid; place-items: center; }
-.mc .box .ic { width: 13px; height: 13px; stroke-width: 2.4; color: #fff; opacity: 0; }
-.mc.on { background: var(--mint-soft); border-color: transparent; color: var(--mint-deep); }
-.mc.on .box { background: var(--mint); border-color: var(--mint); }
-.mc.on .box .ic { opacity: 1; }
-
 /* 오늘의 기도 카드 */
 .pcard {
   position: relative;
