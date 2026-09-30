@@ -1,5 +1,5 @@
 // 오프라인 지원: 앱 파일은 네트워크 우선(수정 사항 바로 반영), 실패하면 캐시 사용
-const CACHE = 'qt-note-v2';
+const CACHE = 'qt-note-v3';
 const ASSETS = [
   './', 'index.html', 'css/style.css',
   'js/icons.js', 'js/parse.js', 'js/db.js', 'js/app.js',
@@ -7,7 +7,11 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => c.addAll(ASSETS.map((a) => new Request(a, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (e) => {
@@ -24,8 +28,10 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
 
   if (url.origin === location.origin) {
+    // GitHub Pages의 10분 캐시를 건너뛰고 서버에 최신 파일이 있는지 매번 확인
+    const fresh = req.mode === 'navigate' ? fetch(req.url, { cache: 'no-cache' }) : fetch(req, { cache: 'no-cache' });
     e.respondWith(
-      fetch(req)
+      fresh
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(req, copy));
