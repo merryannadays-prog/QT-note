@@ -323,7 +323,7 @@
       </div>
 
       ${d.finished
-        ? `<div class="finished-note">${icon('heart')}오늘의 큐티를 마쳤어요<br><button data-act="reopen">다시 이어서 하기</button></div>`
+        ? `<div class="finished-note">${icon('heart')}${signHtml(getSign())}오늘의 큐티를 마쳤어요<br><button data-act="reopen">다시 이어서 하기</button></div>`
         : `<button class="finish" data-act="finish">${icon('check')} 오늘 큐티 마치기</button>`}
     </section>`;
   }
@@ -333,11 +333,59 @@
     if (!marks.length) {
       return `<div class="col-empty">${ART_EMPTY}본문의 문장을 톡 누르면<br>형광펜과 함께 이곳에 차곡차곡 모여요</div>`;
     }
-    return marks.map((m) => `<div class="col-item" data-c="${m.c}" data-act="goto" data-k="${m.k}">
+    return `<div class="col-card">${marks.map((m) => `<div class="col-item" data-c="${m.c}" data-act="goto" data-k="${m.k}">
       <div class="col-src"><i></i>${esc(m.l)}</div>
       <div class="col-text"><span class="mark" data-c="${m.c}">${esc(m.t)}</span></div>
       <button class="col-del" data-act="unmark" data-k="${m.k}" aria-label="형광펜 지우기">${icon('x')}</button>
-    </div>`).join('');
+    </div>`).join('')}</div>`;
+  }
+
+  // ───────── 서명 설정 ─────────
+  const SIGN_MAX = 10;
+  function getSign() {
+    try { return localStorage.getItem('qt-sign') || ''; } catch (_) { return ''; }
+  }
+  function setSign(v) {
+    try { localStorage.setItem('qt-sign', v); } catch (_) { toast('이 브라우저에서는 설정을 저장할 수 없어요'); }
+  }
+  // 한글이 들어가면 한글 손글씨체, 아니면 영문 필기체
+  function signHtml(name, preview = false) {
+    if (!name) return preview ? '<span class="sign empty">서명이 여기에 표시돼요</span>' : '';
+    return `<span class="sign${/[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(name) ? ' ko' : ''}">${esc(name)}</span>`;
+  }
+
+  function openSettings() {
+    const bg = document.createElement('div');
+    bg.className = 'sheet-bg';
+    bg.innerHTML = `<div class="sheet" role="dialog" aria-label="설정">
+      <div class="sheet-grip"></div>
+      <h2>설정</h2>
+      <label class="field-label" for="signInput">나의 서명 <small id="signCount">0/${SIGN_MAX}</small></label>
+      <input class="field" id="signInput" maxlength="${SIGN_MAX}" placeholder="한나 또는 Hannah" value="${esc(getSign())}" autocomplete="off">
+      <p class="field-help">큐티를 마친 날, 하트 아래에 필기체로 연하게 표시돼요. 한글이나 영어로 ${SIGN_MAX}자까지 쓸 수 있어요.</p>
+      <div class="sign-preview">${icon('heart')}<div id="signPreview"></div></div>
+      <div class="sheet-actions">
+        <button class="btn btn-ghost" data-sheet="cancel">취소</button>
+        <button class="btn btn-primary" data-sheet="save">저장</button>
+      </div>
+    </div>`;
+    document.body.appendChild(bg);
+    const input = bg.querySelector('#signInput');
+    const sync = () => {
+      bg.querySelector('#signPreview').innerHTML = signHtml(input.value.trim(), true);
+      bg.querySelector('#signCount').textContent = `${input.value.length}/${SIGN_MAX}`;
+    };
+    sync();
+    input.addEventListener('input', sync);
+    bg.addEventListener('click', (e) => {
+      const act = e.target.closest('[data-sheet]')?.dataset.sheet;
+      if (e.target === bg || act === 'cancel') bg.remove();
+      if (act === 'save') {
+        setSign(input.value.trim().slice(0, SIGN_MAX));
+        bg.remove();
+        toast(input.value.trim() ? '서명을 저장했어요' : '서명을 지웠어요');
+      }
+    });
   }
 
   function refreshCollected() {
@@ -501,7 +549,8 @@
     const th = today ? Parse.header(today.raw.header) : null;
 
     $app.innerHTML = `<div class="cal-page">
-      <div class="brand"><span class="brand-ic">${icon('sprout')}</span><div><h1>나의 큐티노트</h1><p>날마다 이어 가는 말씀 묵상</p></div></div>
+      <div class="brand"><span class="brand-ic">${icon('sprout')}</span><div><h1>나의 큐티노트</h1><p>날마다 이어 가는 말씀 묵상</p></div>
+        <button class="gear" data-act="settings" aria-label="설정">${icon('gear')}</button></div>
 
       <button class="today-card" data-act="open" data-date="${tk}">
         <span><small>TODAY · ${fmtDate(tk)} ${weekday(tk)}</small>
@@ -550,6 +599,7 @@
 
   async function exportBackup() {
     const data = await DB.exportAll();
+    data.settings = { sign: getSign() };
     const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -569,6 +619,7 @@
       const data = JSON.parse(await f.text());
       if (!confirm(`백업 파일의 ${data.days?.length ?? 0}일 기록을 불러올까요?\n같은 날짜의 기록은 백업 내용으로 바뀌어요.`)) return;
       const n = await DB.importAll(data);
+      if (data.settings && typeof data.settings.sign === 'string') setSign(data.settings.sign.slice(0, SIGN_MAX));
       toast(`${n}일의 기록을 불러왔어요`);
       showCalendar();
     } catch (e) {
@@ -589,6 +640,7 @@
       case 'open': location.hash = '#/day/' + t.dataset.date; break;
       case 'month': S.calMonth = new Date(S.calMonth.getFullYear(), S.calMonth.getMonth() + Number(t.dataset.d), 1); showCalendar(); break;
       case 'export': exportBackup(); break;
+      case 'settings': openSettings(); break;
       case 'import': $importFile.click(); break;
       case 'toggle': {
         const s = document.getElementById('sec-' + sid);
