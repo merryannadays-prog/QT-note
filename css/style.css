@@ -172,9 +172,18 @@ textarea { font: inherit; }
 .vn { padding-top: 3px; font-size: 15px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
 .vt { font-size: 16.5px; line-height: 1.95; color: var(--text); }
 
+/* 긴 글은 양쪽 정렬 + 글자 단위 줄바꿈 (오른쪽 끝을 가지런하게) */
+.vt, .prose p, .q p, .col-text, .quote p, .note-ta {
+  text-align: justify;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
 /* 일반 글 */
 .prose p { margin: 0 0 14px; font-size: 16px; line-height: 1.95; color: var(--text); }
 .prose p:last-child { margin-bottom: 0; }
+.prose p.li { position: relative; padding-left: 16px; margin-bottom: 8px; }
+.prose p.li::before { content: ''; position: absolute; left: 2px; top: .9em; width: 5px; height: 5px; border-radius: 50%; background: var(--mint); opacity: .7; }
 
 /* ───────── 형광펜 단위 ───────── */
 .u {
@@ -325,6 +334,35 @@ textarea { font: inherit; }
 .paste--hero .btn-primary { background: #fff; color: var(--forest); }
 .paste--hero .btn-soft { background: rgba(255, 255, 255, .18); color: #fff; }
 .paste--hero .btn-ghost { color: rgba(255, 255, 255, .8); }
+
+/* 웹 「오늘의 QT」 한 번에 가져오기 */
+.webqt {
+  margin-top: 28px;
+  padding: 18px 16px 14px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #eef8f5, #f6faf7);
+}
+.webqt .paste-head .pic { background: #fff; }
+.webqt-steps { margin: 14px 0 12px; padding-left: 20px; font-size: 13.5px; line-height: 1.8; color: var(--sub); }
+.webqt-steps li::marker { color: var(--mint); font-weight: 700; }
+.webqt-open { width: 100%; justify-content: center; height: 42px; text-decoration: none; background: #fff; }
+.webqt-note { margin: 8px 2px 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+.webqt .paste { margin-top: 12px; background: #fff; }
+
+/* 줄 이음 확인 (수정 화면) */
+.jn-box:empty { display: none; }
+.jn-box { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: #fbfcfb; border: 1px solid var(--line); }
+.jn-help { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; margin-bottom: 8px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.jn-help span { display: inline-flex; align-items: center; gap: 4px; }
+.jn-text { font-size: 14px; line-height: 2; color: var(--text); }
+.jn, .jn-key { display: inline-block; vertical-align: middle; border-radius: 50%; }
+.jn { position: relative; width: 26px; height: 26px; margin: -4px -10px; }
+.jn::after, .jn-key { content: ''; width: 9px; height: 9px; }
+.jn::after { position: absolute; left: 8.5px; top: 8.5px; border-radius: 50%; }
+.jn.is-join::after, .jn-key.is-join { background: var(--mint); }
+.jn.is-gap { margin: 0 -2px; }
+.jn.is-gap::after, .jn-key.is-gap { background: var(--hl-p-deep); }
+.jn-key { margin-left: 6px; }
 
 .add-part {
   display: flex; align-items: center; justify-content: center; gap: 6px;

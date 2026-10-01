@@ -5,14 +5,19 @@
   const $toast = document.getElementById('toast');
   const $importFile = document.getElementById('importFile');
 
+  const WEB_QT_URL = 'https://www.duranno.com/qt/view/bible.asp';
+  const WEB_TIP = "웹 「오늘의 QT」에서 복사하면 깔끔해요.";
+  const WEB_KEYS = ['header', 'scripture', 'helper', 'prayer'];
+  const WEB_NAMES = { header: '말씀 범위·제목', scripture: '성경 본문', helper: '묵상 도우미', prayer: '오늘의 기도' };
+
   // 하루 페이지의 섹션 순서 (divider = 그룹 구분 제목)
   const LAYOUT = [
-    { id: 'scripture', label: '성경 본문', type: 'scripture', hint: '소제목과 절 번호가 있는 본문 전체를 붙여넣어 주세요' },
-    { id: 'helper', label: '묵상 도우미', type: 'prose' },
+    { id: 'scripture', label: '성경 본문', type: 'scripture', hint: `소제목과 절 번호가 있는 본문 전체를 붙여넣어 주세요. ${WEB_TIP}` },
+    { id: 'helper', label: '묵상 도우미', type: 'prose', hint: `'묵상 도우미' 내용을 붙여넣어 주세요. ${WEB_TIP}` },
     { id: 'summary', label: '오늘의 말씀 요약', type: 'prose' },
     { divider: '본문 해설' },
     { id: 'comm', label: '본문 해설', type: 'commentary', repeat: true, hint: '소제목부터 마무리 질문까지 한 파트씩 붙여넣어 주세요' },
-    { id: 'prayer', label: '오늘의 기도', type: 'prose' },
+    { id: 'prayer', label: '오늘의 기도', type: 'prose', hint: `'오늘의 기도' 내용을 붙여넣어 주세요. ${WEB_TIP}` },
     { divider: '묵상 에세이' },
     { id: 'essay', label: '묵상 에세이', type: 'essay', hint: '제목, 본문, 참고 도서 줄까지 붙여넣어 주세요' },
     { id: 'oneverse', label: '한절 묵상', type: 'oneverse' },
@@ -30,6 +35,7 @@
     editing: new Set(),   // 수정 중인 섹션 id
     folded: new Set(),    // 접은 섹션 id
     expanded: false,      // 마친 날에 본문을 펼쳤는지
+    jn: {},               // 수정 중인 섹션의 줄 이음 선택 { sid: [true|false|undefined, ...] }
     calMonth: null,       // 캘린더에서 보고 있는 달 (Date, 1일)
     saveTimer: null,
   };
@@ -126,7 +132,7 @@
     const editing = S.editing.has('header');
     let body;
     if (!d.raw.header || editing) {
-      body = pasteBox('header', { label: '말씀 범위 · 오늘의 제목', hint: '예) 역대상 16:37~43 / 날마다 이어 갈 영적 예배', hero: true });
+      body = pasteBox('header', { label: '말씀 범위 · 오늘의 제목', hint: `예) 역대상 16:37~43 / 날마다 이어 갈 영적 예배. ${WEB_TIP}`, hero: true });
     } else {
       body = `<div class="hero-body">
         ${h.range ? `<h1 class="hero-range">${esc(h.range)}</h1>` : ''}
@@ -156,6 +162,7 @@
   function renderContent() {
     const out = [];
     const finished = S.day.finished;
+    if (!finished && WEB_KEYS.some((k) => !getRawAny(k))) out.push(renderWebCard());
     for (const cfg of LAYOUT) {
       if (cfg.divider) { out.push(`<h2 class="divider">${cfg.divider}</h2>`); continue; }
       if (cfg.repeat) {
@@ -253,7 +260,48 @@
   }
 
   function paras(list, U, l) {
-    return list.map((p) => `<p>${p.map((s) => U(s, l)).join(' ')}</p>`).join('');
+    return list.map((p) => `<p${p.li ? ' class="li"' : ''}>${p.map((s) => U(s, l)).join(' ')}</p>`).join('');
+  }
+
+  // 웹 「오늘의 QT」에서 한 번에 가져오기 카드
+  function renderWebCard() {
+    return `<section class="webqt" id="sec-web">
+      <div class="paste-head"><span class="pic">${icon('globe')}</span>
+        <div><b>웹 「오늘의 QT」에서 한 번에</b><small>말씀 범위·제목, 성경 본문, 묵상 도우미, 오늘의 기도를 칸마다 알아서 나눠 넣어요</small></div></div>
+      <ol class="webqt-steps">
+        <li>아래 버튼으로 두란노 「오늘의 QT」 열기</li>
+        <li>제목부터 오늘의 기도까지 길게 눌러 선택하고 복사</li>
+        <li>돌아와서 아래 칸에 붙여넣기</li>
+      </ol>
+      <a class="btn btn-soft webqt-open" href="${WEB_QT_URL}" target="_blank" rel="noopener">${icon('external')} 오늘의 QT 열기</a>
+      ${S.date !== todayKey() ? '<p class="webqt-note">웹에서는 오늘 큐티만 바로 볼 수 있어요. 지난 날짜는 두란노 로그인이 필요해요.</p>' : ''}
+      ${pasteBox('web', { label: '웹에서 복사한 내용', hint: '한 번에 붙여넣으면 아래 칸들이 채워져요' })}
+    </section>`;
+  }
+
+  // 수정 화면의 '줄이 바뀐 자리' 미리보기: 점을 탭해서 붙임/띄움을 바꿈
+  function renderJunctions(sid, text) {
+    const c = Parse.clean(text);
+    const js = Parse.junctions(c);
+    if (!js.length) return '';
+    const dec = S.jn[sid] || [];
+    let html = '', last = 0;
+    js.forEach((j, i) => {
+      const join = typeof dec[i] === 'boolean' ? dec[i] : j.join;
+      html += esc(c.slice(last, j.pos)).replace(/\n/g, '<br>');
+      html += `<button type="button" class="jn ${join ? 'is-join' : 'is-gap'}" data-act="jn" data-sid="${sid}" data-i="${i}" aria-label="${join ? '붙임' : '띄움'}"></button>`;
+      last = j.pos + 1;
+    });
+    html += esc(c.slice(last)).replace(/\n/g, '<br>');
+    return `<div class="jn-help">줄이 바뀐 자리예요. 띄어쓰기가 틀린 곳의 점을 탭하세요
+      <span><i class="jn-key is-join"></i>붙임 <i class="jn-key is-gap"></i>띄움</span></div>
+      <div class="jn-text">${html}</div>`;
+  }
+
+  function refreshJunctions(sid) {
+    const box = document.querySelector(`.paste[data-sid="${sid}"] .jn-box`);
+    const ta = document.querySelector(`.paste[data-sid="${sid}"] textarea`);
+    if (box && ta) box.innerHTML = renderJunctions(sid, ta.value);
   }
 
   // 형광펜을 칠할 수 있는 단위(span) 생성기
@@ -287,6 +335,7 @@
       <div class="paste-head"><span class="pic">${icon(editing ? 'pencil' : 'clipboard')}</span>
         <div><b>${esc(name)}</b><small>${esc(editing ? '오타를 고친 뒤 저장을 눌러 주세요' : hint)}</small></div></div>
       <textarea class="paste-ta" rows="2" placeholder="이곳을 길게 눌러 붙여넣기">${esc(raw)}</textarea>
+      ${editing && sid !== 'header' ? `<div class="jn-box">${renderJunctions(sid, raw)}</div>` : ''}
       <div class="paste-actions">
         ${editing ? `<button class="btn btn-danger" data-act="clear" data-sid="${sid}">비우기</button><button class="btn btn-ghost" data-act="cancel" data-sid="${sid}">취소</button>` : ''}
         <button class="btn btn-soft" data-act="clip" data-sid="${sid}">${icon('clipboard')} 붙여넣기</button>
@@ -294,7 +343,7 @@
       </div>
     </div>`;
   }
-  const getRawAny = (sid) => (sid === 'header' ? S.day.raw.header : getRaw(sid));
+  const getRawAny = (sid) => (sid === 'header' ? S.day.raw.header : sid === 'web' ? '' : getRaw(sid));
 
   // ───────── 나의 영역 (모은 말씀 + 노트) ─────────
   function renderMine() {
@@ -454,7 +503,33 @@
     return after;
   }
 
+  // 웹 「오늘의 QT」 글을 말씀 범위·제목 / 성경 본문 / 묵상 도우미 / 오늘의 기도 칸에 나눠 넣음
+  function distributeWeb(b) {
+    const keys = WEB_KEYS.filter((k) => b[k]);
+    if (!keys.length) { toast('나눠 넣을 내용을 찾지 못했어요'); return; }
+    const overwrite = keys.filter((k) => getRawAny(k) && getRawAny(k) !== Parse.clean(b[k]));
+    if (overwrite.length && !confirm(`이미 내용이 있는 칸(${overwrite.map((k) => WEB_NAMES[k]).join(', ')})을 웹 내용으로 바꿀까요?`)) return;
+    keys.forEach((k) => {
+      const v = Parse.clean(b[k]);
+      if (k === 'header') S.day.raw.header = v;
+      else if (v !== getRaw(k)) {
+        setRaw(k, v);
+        S.day.marks = S.day.marks.filter((m) => !m.k.startsWith(k + ':'));
+      }
+      S.editing.delete(k);
+    });
+    renderDay();
+    save();
+    toast(`${keys.map((k) => WEB_NAMES[k]).join(', ')}을 채웠어요`);
+  }
+
   function commit(sid, text) {
+    // 웹 「오늘의 QT」를 통째로 붙여넣었으면 칸마다 나눠 넣음
+    if (sid === 'web' || (WEB_KEYS.includes(sid) && !S.editing.has(sid))) {
+      const bundle = Parse.webBundle(text);
+      if (bundle) { distributeWeb(bundle); return; }
+      if (sid === 'web') { toast("'묵상 도우미'나 '오늘의 기도'까지 함께 복사해 주세요"); return; }
+    }
     const v = Parse.clean(text);
     if (!v) { toast('붙여넣은 내용이 없어요'); return; }
     if (v !== getRawAny(sid)) {
@@ -508,6 +583,8 @@
       ta.value = text;
       autoGrow(ta);
       box.classList.add('has-text');
+      S.jn[sid] = [];
+      refreshJunctions(sid);
     } else commit(sid, text);
   }
 
@@ -643,6 +720,7 @@
       }
       case 'edit':
         S.editing.add(sid);
+        S.jn[sid] = [];
         rerenderKeeping(sid === 'header' ? '.hero' : `#sec-${sid}`);
         document.querySelector(`.paste[data-sid="${sid}"] textarea`)?.focus({ preventScroll: true });
         updatePenbar();
@@ -650,7 +728,18 @@
       case 'cancel': S.editing.delete(sid); rerenderKeeping(sid === 'header' ? '.hero' : `#sec-${sid}`); break;
       case 'clear': clearSection(sid); break;
       case 'clip': pasteFromClipboard(sid); break;
-      case 'done': commit(sid, t.closest('.paste').querySelector('textarea').value); break;
+      case 'done': {
+        const v = t.closest('.paste').querySelector('textarea').value;
+        commit(sid, S.editing.has(sid) ? Parse.applyJunctions(v, S.jn[sid]) : v);
+        break;
+      }
+      case 'jn': {
+        const i = Number(t.dataset.i);
+        const dec = S.jn[sid] || (S.jn[sid] = []);
+        dec[i] = !t.classList.contains('is-join');
+        refreshJunctions(sid);
+        break;
+      }
       case 'add-part':
         S.day.raw.comm.push('');
         renderDay();
@@ -687,7 +776,10 @@
     const ta = e.target;
     if (ta.classList.contains('paste-ta')) {
       autoGrow(ta);
-      ta.closest('.paste').classList.toggle('has-text', !!ta.value.trim());
+      const box = ta.closest('.paste');
+      box.classList.toggle('has-text', !!ta.value.trim());
+      // 글을 고치면 줄 위치가 바뀌므로 줄 이음 선택을 처음부터 다시 계산
+      if (S.editing.has(box.dataset.sid)) { S.jn[box.dataset.sid] = []; refreshJunctions(box.dataset.sid); }
     } else if (ta.id === 'note') {
       autoGrow(ta);
       S.day.note = ta.value;
