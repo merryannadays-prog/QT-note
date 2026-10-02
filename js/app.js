@@ -6,6 +6,11 @@
   const $importFile = document.getElementById('importFile');
 
   const DUPLUS_URL = 'https://www.du.plus/?main=true';
+  // 안드로이드에서는 두플러스 앱(com.duranno.durannoplus)을 바로 실행. 앱이 없으면 플레이스토어로 이동
+  const DUPLUS_APP = 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;'
+    + 'package=com.duranno.durannoplus;'
+    + 'S.browser_fallback_url=' + encodeURIComponent('https://play.google.com/store/apps/details?id=com.duranno.durannoplus') + ';end';
+  const IS_ANDROID = /Android/i.test(navigator.userAgent);
   const WEB_TIP = '맨 위 카드에 두플러스 큐티 전체를 붙여넣으면 한 번에 채워져요.';
   const WEB_KEYS = ['header', 'scripture', 'helper', 'prayer'];
   const WEB_NAMES = { header: '말씀 범위·제목', scripture: '성경 본문', helper: '묵상 도우미', prayer: '오늘의 기도' };
@@ -269,11 +274,13 @@
       <div class="paste-head"><span class="pic">${icon('globe')}</span>
         <div><b>오늘 큐티 한 번에 붙여넣기</b><small>두플러스 큐티를 통째로 복사해 붙여넣으면 모든 칸이 알아서 채워져요</small></div></div>
       <ol class="webqt-steps">
-        <li>아래 버튼으로 두플러스 큐티 열기</li>
+        <li>아래 버튼으로 두플러스를 열고 오늘 큐티로 이동</li>
         <li>날짜부터 오늘의 명언까지 전체 선택해서 복사</li>
         <li>돌아와서 아래 칸에 붙여넣기</li>
       </ol>
-      <a class="btn btn-primary webqt-clip" href="${DUPLUS_URL}" target="_blank" rel="noopener">${icon('external')} 두플러스 큐티 열기</a>
+      ${IS_ANDROID
+        ? `<a class="btn btn-primary webqt-clip" href="${DUPLUS_APP}">${icon('external')} 두플러스 앱 열기</a>`
+        : `<a class="btn btn-primary webqt-clip" href="${DUPLUS_URL}" target="_blank" rel="noopener">${icon('external')} 두플러스 큐티 열기</a>`}
       ${pasteBox('web', { label: '복사한 내용 붙여넣기', hint: '한 번에 붙여넣으면 아래 칸들이 채워져요' })}
     </section>`;
   }

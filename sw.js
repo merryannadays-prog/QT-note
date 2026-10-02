@@ -1,5 +1,5 @@
 // 오프라인 지원: 앱 파일은 네트워크 우선(수정 사항 바로 반영), 실패하면 캐시 사용
-const CACHE = 'qt-note-v13';
+const CACHE = 'qt-note-v14';
 const ASSETS = [
   './', 'index.html', 'css/style.css',
   'js/icons.js', 'js/parse.js', 'js/db.js', 'js/app.js',
