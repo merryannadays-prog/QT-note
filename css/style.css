@@ -367,6 +367,11 @@ textarea { font: inherit; }
 .jn.is-gap::after, .jn-key.is-gap { background: var(--hl-p-deep); }
 .jn-key { margin-left: 6px; }
 
+.reset-row { display: flex; justify-content: flex-end; margin: 16px 0 -16px; }
+.reset-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 4px; font-size: 12.5px; color: var(--muted); }
+.reset-btn .ic { width: 14px; height: 14px; }
+.reset-btn:active { color: var(--sub); }
+
 .add-part {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   width: 100%; height: 44px; margin-top: 24px;

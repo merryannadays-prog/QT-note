@@ -167,6 +167,10 @@
     const out = [];
     const finished = S.day.finished;
     if (!finished && !S.day.raw.scripture) out.push(renderWebCard());
+    // 잘못 붙여넣었을 때 내용만 다시 넣을 수 있도록 작은 초기화 버튼 (노트는 그대로)
+    if (hasAnyContent(S.day) || S.day.raw.header) {
+      out.push(`<div class="reset-row"><button class="reset-btn" data-act="reset-content">${icon('undo')} 내용 초기화</button></div>`);
+    }
     for (const cfg of LAYOUT) {
       if (cfg.divider) { out.push(`<h2 class="divider">${cfg.divider}</h2>`); continue; }
       if (cfg.repeat) {
@@ -562,6 +566,20 @@
     save();
   }
 
+  // 붙여넣은 큐티 내용(제목·본문·해설 등)과 형광펜만 비움. 묵상 노트와 큐티 완료 여부는 그대로 둠
+  function resetContent() {
+    if (!confirm('이 날짜에 붙여넣은 큐티 내용을 모두 비울까요?\n칠한 형광펜도 함께 지워지고, 묵상 노트는 그대로 남아요.')) return;
+    const keep = { note: S.day.note, finished: S.day.finished };
+    Object.assign(S.day, emptyDay(S.date), keep);
+    S.editing.clear();
+    S.folded.clear();
+    S.expanded = false;
+    renderDay();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    save();
+    toast('내용을 비웠어요. 다시 붙여넣어 주세요');
+  }
+
   function clearSection(sid) {
     if (!confirm('이 섹션의 내용을 비울까요? (칠한 형광펜도 함께 지워져요)')) return;
     if (sid === 'header') S.day.raw.header = '';
@@ -744,6 +762,7 @@
         break;
       case 'cancel': S.editing.delete(sid); rerenderKeeping(sid === 'header' ? '.hero' : `#sec-${sid}`); break;
       case 'clear': clearSection(sid); break;
+      case 'reset-content': resetContent(); break;
       case 'clip': pasteFromClipboard(sid); break;
       case 'done': {
         const v = t.closest('.paste').querySelector('textarea').value;
