@@ -233,8 +233,14 @@ const Parse = (() => {
   const PRAYER_MARK = /^오늘의\s*기도$/;
   const isVerseLine = (l) => /^\d{1,3}\s/.test(l);
 
+  // 웹 페이지의 버튼 문구: 휴대폰에서 복사하면 한 줄로 붙거나 표현이 달라질 수 있어 문구 단위로 지움
+  const WEB_UI_PHRASES = /(본문\s*말씀|(말씀|글씨|글자)\s*크기(\s*(크게|작게))*|(글씨|글자|말씀)\s*(크게|작게)|(?:^|\s)(크게|작게)(?=\s|$))/g;
+
   function webBundle(raw) {
     let ls = clean(raw).split('\n');
+    // 버튼 문구는 성경 본문(첫 절)보다 위쪽에만 있음 → 기도 속 '크게' 같은 말은 건드리지 않음
+    const firstVerse = ls.findIndex(isVerseLine);
+    ls = ls.map((l, i) => (firstVerse !== -1 && i >= firstVerse ? l : l.replace(WEB_UI_PHRASES, ' ').replace(/ {2,}/g, ' ').trim()));
     // 오늘의 찬송 가사 블록('오늘의 찬송' ~ '역본 선택') 제거
     const hymn = ls.findIndex((l) => /^오늘의\s*찬송/.test(l));
     if (hymn !== -1) {
