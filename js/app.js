@@ -5,8 +5,8 @@
   const $toast = document.getElementById('toast');
   const $importFile = document.getElementById('importFile');
 
-  const WEB_QT_URL = 'https://www.duranno.com/qt/view/bible.asp';
-  const WEB_TIP = "웹 「오늘의 QT」에서 복사하면 깔끔해요.";
+  const DUPLUS_URL = 'https://www.du.plus/?main=true';
+  const WEB_TIP = '맨 위 카드에 두플러스 큐티 전체를 붙여넣으면 한 번에 채워져요.';
   const WEB_KEYS = ['header', 'scripture', 'helper', 'prayer'];
   const WEB_NAMES = { header: '말씀 범위·제목', scripture: '성경 본문', helper: '묵상 도우미', prayer: '오늘의 기도' };
 
@@ -132,7 +132,7 @@
     const editing = S.editing.has('header');
     let body;
     if (!d.raw.header || editing) {
-      body = pasteBox('header', { label: '말씀 범위 · 오늘의 제목', hint: `예) 역대상 16:37~43 / 날마다 이어 갈 영적 예배. ${WEB_TIP}`, hero: true });
+      body = pasteBox('header', { label: '말씀 범위 · 오늘의 제목', hint: '예) 역대상 16:37~43 / 날마다 이어 갈 영적 예배. 아래 카드에 두플러스 큐티 전체를 붙여넣으면 함께 채워져요.', hero: true });
     } else {
       body = `<div class="hero-body">
         ${h.range ? `<h1 class="hero-range">${esc(h.range)}</h1>` : ''}
@@ -162,7 +162,7 @@
   function renderContent() {
     const out = [];
     const finished = S.day.finished;
-    if (!finished && WEB_KEYS.some((k) => !getRawAny(k))) out.push(renderWebCard());
+    if (!finished && !S.day.raw.scripture) out.push(renderWebCard());
     for (const cfg of LAYOUT) {
       if (cfg.divider) { out.push(`<h2 class="divider">${cfg.divider}</h2>`); continue; }
       if (cfg.repeat) {
@@ -263,19 +263,18 @@
     return list.map((p) => `<p${p.li ? ' class="li"' : ''}>${p.map((s) => U(s, l)).join(' ')}</p>`).join('');
   }
 
-  // 웹 「오늘의 QT」에서 한 번에 가져오기 카드
+  // 웹에서 한 번에 가져오기 카드 (두플러스 웹큐티 / 두란노 「오늘의 QT」)
   function renderWebCard() {
     return `<section class="webqt" id="sec-web">
       <div class="paste-head"><span class="pic">${icon('globe')}</span>
-        <div><b>웹 「오늘의 QT」에서 한 번에</b><small>말씀 범위·제목, 성경 본문, 묵상 도우미, 오늘의 기도를 칸마다 알아서 나눠 넣어요</small></div></div>
+        <div><b>오늘 큐티 한 번에 붙여넣기</b><small>두플러스 큐티를 통째로 복사해 붙여넣으면 모든 칸이 알아서 채워져요</small></div></div>
       <ol class="webqt-steps">
-        <li>아래 버튼으로 두란노 「오늘의 QT」 열기</li>
-        <li>제목부터 오늘의 기도까지 길게 눌러 선택하고 복사</li>
+        <li>아래 버튼으로 두플러스 큐티 열기</li>
+        <li>날짜부터 오늘의 명언까지 전체 선택해서 복사</li>
         <li>돌아와서 아래 칸에 붙여넣기</li>
       </ol>
-      <a class="btn btn-soft webqt-open" href="${WEB_QT_URL}" target="_blank" rel="noopener">${icon('external')} 오늘의 QT 열기</a>
-      ${S.date !== todayKey() ? '<p class="webqt-note">웹에서는 오늘 큐티만 바로 볼 수 있어요. 지난 날짜는 두란노 로그인이 필요해요.</p>' : ''}
-      ${pasteBox('web', { label: '웹에서 복사한 내용', hint: '한 번에 붙여넣으면 아래 칸들이 채워져요' })}
+      <a class="btn btn-primary webqt-clip" href="${DUPLUS_URL}" target="_blank" rel="noopener">${icon('external')} 두플러스 큐티 열기</a>
+      ${pasteBox('web', { label: '복사한 내용 붙여넣기', hint: '한 번에 붙여넣으면 아래 칸들이 채워져요' })}
     </section>`;
   }
 
@@ -503,27 +502,39 @@
     return after;
   }
 
-  // 웹 「오늘의 QT」 글을 말씀 범위·제목 / 성경 본문 / 묵상 도우미 / 오늘의 기도 칸에 나눠 넣음
+  // 웹에서 통째로 복사한 글을 칸마다 나눠 넣음 (두플러스 웹큐티 / 두란노 「오늘의 QT」)
+  const ALL_NAMES = { ...WEB_NAMES, summary: '말씀 요약', comm: '본문 해설', essay: '묵상 에세이', oneverse: '한절 묵상', quote: '오늘의 명언' };
   function distributeWeb(b) {
-    const keys = WEB_KEYS.filter((k) => b[k]);
+    const has = (k) => (Array.isArray(b[k]) ? b[k].some(Boolean) : !!b[k]);
+    const current = (k) => (k === 'comm' ? S.day.raw.comm.filter(Boolean).join('\n\n') : getRawAny(k));
+    const incoming = (k) => (k === 'comm' ? b.comm.map(Parse.clean).join('\n\n') : Parse.clean(b[k]));
+    const keys = Object.keys(ALL_NAMES).filter((k) => k in b && has(k));
     if (!keys.length) { toast('나눠 넣을 내용을 찾지 못했어요'); return; }
-    const overwrite = keys.filter((k) => getRawAny(k) && getRawAny(k) !== Parse.clean(b[k]));
-    if (overwrite.length && !confirm(`이미 내용이 있는 칸(${overwrite.map((k) => WEB_NAMES[k]).join(', ')})을 웹 내용으로 바꿀까요?`)) return;
+    const overwrite = keys.filter((k) => current(k) && current(k) !== incoming(k));
+    if (overwrite.length && !confirm(`이미 내용이 있는 칸(${overwrite.map((k) => ALL_NAMES[k]).join(', ')})을 새 내용으로 바꿀까요?`)) return;
     keys.forEach((k) => {
-      const v = Parse.clean(b[k]);
-      if (k === 'header') S.day.raw.header = v;
-      else if (v !== getRaw(k)) {
-        setRaw(k, v);
+      if (current(k) === incoming(k)) return;
+      if (k === 'header') S.day.raw.header = incoming(k);
+      else if (k === 'comm') {
+        S.day.raw.comm = b.comm.map(Parse.clean).filter(Boolean);
+        S.day.marks = S.day.marks.filter((m) => !m.k.startsWith('comm'));
+      } else {
+        setRaw(k, incoming(k));
         S.day.marks = S.day.marks.filter((m) => !m.k.startsWith(k + ':'));
       }
-      S.editing.delete(k);
     });
+    S.editing.clear();
     renderDay();
     save();
-    toast(`${keys.map((k) => WEB_NAMES[k]).join(', ')}을 채웠어요`);
+    toast(keys.length > 4 ? '오늘 큐티를 한 번에 채웠어요' : `${keys.map((k) => ALL_NAMES[k]).join(', ')}을 채웠어요`);
   }
 
   function commit(sid, text) {
+    // 두플러스 웹큐티 전체를 붙여넣었으면 모든 칸에 나눠 넣음 (어느 칸에 붙여넣어도 됨)
+    if (sid === 'web' || !S.editing.has(sid)) {
+      const du = Parse.duplusBundle(text);
+      if (du) { distributeWeb(du); return; }
+    }
     // 웹 「오늘의 QT」를 통째로 붙여넣었으면 칸마다 나눠 넣음
     if (sid === 'web' || (WEB_KEYS.includes(sid) && !S.editing.has(sid))) {
       const bundle = Parse.webBundle(text);

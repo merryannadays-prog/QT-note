@@ -198,7 +198,8 @@ const Parse = (() => {
       const g = l.match(HEAD_GLUED);
       if (g && /^\d{1,3}\s*\S/.test(g[2])) { chunks.push({ h: normRef(g[1]) }, { text: g[2] }); continue; }
       const prev = chunks[chunks.length - 1];
-      if (prev && 'text' in prev) prev.text = joinTwo(prev.text, l); else chunks.push({ text: l });
+      // 절 번호로 시작하는 줄은 새 덩어리로 (번호가 건너뛰어도 절로 인정하기 위해)
+      if (prev && 'text' in prev && !/^\d{1,3}\s/.test(l)) prev.text = joinTwo(prev.text, l); else chunks.push({ text: l });
     }
     const blocks = [];
     let cur = null; // 마지막 절 번호
@@ -218,7 +219,8 @@ const Parse = (() => {
         const n = Number(m[2]);
         const at = m.index + m[1].length;
         // 첫 절은 번호 그대로, 그다음부터는 이어지는 번호(이전 + 1)만 절로 인정
-        if (cur === null || n === cur + 1) { cuts.push({ n, at, len: m[2].length }); cur = n; }
+        // 단, 줄 맨 앞의 번호는 앞 절보다 크기만 하면 인정 (일부만 복사한 경우)
+        if (cur === null || n === cur + 1 || (at === 0 && n > cur)) { cuts.push({ n, at, len: m[2].length }); cur = n; }
       }
       if (!cuts.length) {
         const last = blocks[blocks.length - 1];
@@ -357,11 +359,102 @@ const Parse = (() => {
     };
   }
 
+  // 두플러스 생명의삶 웹큐티를 통째로 복사한 글 → 모든 섹션으로 나눔
+  // 구분 제목: 성경 본문 / 오늘의 말씀 요약 / 본문 해설 / 오늘의 기도 / 묵상 에세이 / 한절 묵상 / 오늘의 명언
+  const DU_MARKS = {
+    hymn: /^오늘의\s*찬송$/,
+    scripture: /^성경\s*본문$/,
+    helper: /^묵상\s*도우미$/,
+    summary: /^오늘의\s*말씀\s*요약$/,
+    comm: /^본문\s*해설$/,
+    prayer: /^오늘의\s*기도$/,
+    essay: /^묵상\s*에세이$/,
+    oneverse: /^한절\s*묵상$/,
+    quote: /^오늘의\s*명언$/,
+    mccheyne: /^맥체인/,
+  };
+  // 탭 이름이나 페이지 아래쪽 안내처럼 내용이 아닌 줄 (여기서 섹션이 끝남)
+  const DU_STOP = /^(말씀|해설|에세이|아멘|묵상 완료|노트 쓰기|공지사항)$|명이 아멘하고|모바일 QT 앱|큐티 챌린지|서비스 이용약관|Copyright/;
+
+  function duplusBundle(raw) {
+    const ls = clean(raw).split('\n').map((l) => l.trim()).filter(Boolean);
+    const at = {};
+    for (const [k, re] of Object.entries(DU_MARKS)) at[k] = ls.findIndex((l) => re.test(l));
+    if (at.scripture === -1 || (at.comm === -1 && at.essay === -1 && at.summary === -1)) return null;
+
+    const markIdx = Object.values(at).filter((i) => i !== -1).sort((a, b) => a - b);
+    const sectionLines = (k) => {
+      if (at[k] === -1) return [];
+      const end = markIdx.find((i) => i > at[k]) ?? ls.length;
+      const out = [];
+      for (const l of ls.slice(at[k] + 1, end)) {
+        if (DU_STOP.test(l)) break;
+        out.push(l);
+      }
+      return out;
+    };
+
+    // 머리글: 맨 처음 나오는 '책 장:절' 줄이 범위, 그다음 줄들이 오늘의 제목
+    const first = Math.min(...[at.hymn, at.scripture].filter((i) => i !== -1));
+    const refRe = /^[가-힣]+\s*\d+\s*[:：]\s*\d+/;
+    const iRange = ls.findIndex((l, i) => i < first && refRe.test(l));
+    let header = '';
+    if (iRange !== -1) {
+      const title = [];
+      for (const l of ls.slice(iRange + 1, first)) { if (DU_STOP.test(l)) break; title.push(l); }
+      header = [ls[iRange], ...title].join('\n');
+    }
+
+    // 본문 해설: 소제목('… 17:16~22')마다 한 파트
+    const comm = [];
+    for (const l of sectionLines('comm')) {
+      if (HEAD_LINE.test(l)) comm.push([l]);
+      else if (comm.length) comm[comm.length - 1].push(l);
+      else comm.push([l]);
+    }
+    const commTexts = comm.map((p) => p[0] + '\n' + p.slice(1).join('\n\n'));
+
+    // 성경 본문: 절 번호 줄 + 본문 줄 → '16 본문'. 해설 소제목의 절 범위로 성경 본문에도 소제목을 넣음
+    const heads = comm.map((p) => p[0]).filter((h) => HEAD_LINE.test(h))
+      .map((h) => ({ h, start: Number((h.match(/:\s*(\d+)/) || [])[1]) }));
+    const verses = [];
+    const sl = sectionLines('scripture');
+    for (let i = 0; i < sl.length; i++) {
+      if (/^\d{1,3}$/.test(sl[i]) && sl[i + 1] !== undefined) { verses.push({ n: Number(sl[i]), text: sl[i + 1] }); i++; }
+      else if (/^\d{1,3}\s/.test(sl[i])) verses.push({ n: Number(sl[i].split(' ')[0]), text: sl[i].replace(/^\d{1,3}\s*/, '') });
+      else if (verses.length) verses[verses.length - 1].text += ' ' + sl[i];
+    }
+    const scriptureLines = [];
+    for (const v of verses) {
+      const h = heads.find((x) => x.start === v.n);
+      if (h) scriptureLines.push(h.h);
+      scriptureLines.push(`${v.n} ${v.text}`);
+    }
+
+    // 맨 위의 '2026.10.02 금요일' → 그날 페이지에 넣기 위한 날짜
+    const dm = ls.slice(0, first).join(' ').match(/(\d{4})\s*[.\-/년]\s*(\d{1,2})\s*[.\-/월]\s*(\d{1,2})/);
+    const date = dm ? `${dm[1]}-${dm[2].padStart(2, '0')}-${dm[3].padStart(2, '0')}` : '';
+
+    const prose = (k) => sectionLines(k).join('\n\n');
+    return {
+      date,
+      header,
+      scripture: scriptureLines.join('\n'),
+      helper: sectionLines('helper').join('\n'),
+      summary: prose('summary'),
+      comm: commTexts,
+      prayer: prose('prayer'),
+      essay: (() => { const e = sectionLines('essay'); return e.length > 1 ? [e[0], e.slice(1, -1).join('\n\n'), e[e.length - 1]].filter(Boolean).join('\n') : e.join('\n'); })(),
+      oneverse: sectionLines('oneverse').join(' '),
+      quote: sectionLines('quote').join('\n'),
+    };
+  }
+
   // '역대상 16:37~43' → { book:'역대상', chapter:'16' }
   function bookChapter(range) {
     const m = String(range || '').match(/^(.+?)\s*(\d+)\s*:/);
     return m ? { book: m[1].trim(), chapter: m[2] } : null;
   }
 
-  return { clean, sentences, paragraphs, header, scripture, commentary, essay, oneVerse, quote, bookChapter, junctions, applyJunctions, webBundle, strongJoin };
+  return { clean, sentences, paragraphs, header, scripture, commentary, essay, oneVerse, quote, bookChapter, junctions, applyJunctions, webBundle, duplusBundle, strongJoin };
 })();

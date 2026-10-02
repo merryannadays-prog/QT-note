@@ -345,7 +345,10 @@ textarea { font: inherit; }
 .webqt .paste-head .pic { background: #fff; }
 .webqt-steps { margin: 14px 0 12px; padding-left: 20px; font-size: 13.5px; line-height: 1.8; color: var(--sub); }
 .webqt-steps li::marker { color: var(--mint); font-weight: 700; }
-.webqt-open { width: 100%; justify-content: center; height: 42px; text-decoration: none; background: #fff; }
+.webqt-clip { width: 100%; justify-content: center; height: 48px; border-radius: 14px; font-size: 15px; text-decoration: none; }
+.webqt-links { display: flex; justify-content: center; gap: 8px; margin-top: 6px; }
+.webqt-open { flex: 1; justify-content: center; height: 42px; text-decoration: none; background: #fff; }
+.webqt-open.btn-ghost { flex: none; background: transparent; font-size: 13px; }
 .webqt-note { margin: 8px 2px 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
 .webqt .paste { margin-top: 12px; background: #fff; }
 
