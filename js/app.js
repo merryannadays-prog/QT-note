@@ -337,8 +337,7 @@
       <textarea class="paste-ta" rows="2" placeholder="이곳을 길게 눌러 붙여넣기">${esc(raw)}</textarea>
       ${editing && sid !== 'header' ? `<div class="jn-box">${renderJunctions(sid, raw)}</div>` : ''}
       <div class="paste-actions">
-        ${editing ? `<button class="btn btn-danger" data-act="clear" data-sid="${sid}">비우기</button><button class="btn btn-ghost" data-act="cancel" data-sid="${sid}">취소</button>` : ''}
-        <button class="btn btn-soft" data-act="clip" data-sid="${sid}">${icon('clipboard')} 붙여넣기</button>
+        ${editing ? `<button class="btn btn-danger" data-act="clear" data-sid="${sid}">비우기</button><button class="btn btn-ghost" data-act="cancel" data-sid="${sid}">취소</button>` : ''}        <button class="btn btn-soft" data-act="clip" data-sid="${sid}">${icon('clipboard')} 붙여넣기</button>
         <button class="btn btn-primary btn-done" data-act="done" data-sid="${sid}">${editing ? '저장' : '완료'}</button>
       </div>
     </div>`;
@@ -406,6 +405,7 @@
       <input class="field" id="signInput" maxlength="${SIGN_MAX}" placeholder="한나 또는 Hannah" value="${esc(getSign())}" autocomplete="off">
       <p class="field-help">큐티를 마친 날, 하트 아래에 필기체로 연하게 표시돼요. 한글이나 영어로 ${SIGN_MAX}자까지 쓸 수 있어요.</p>
       <div class="sign-preview">${icon('heart')}<div id="signPreview"></div></div>
+
       <div class="sheet-actions">
         <button class="btn btn-ghost" data-sheet="cancel">취소</button>
         <button class="btn btn-primary" data-sheet="save">저장</button>

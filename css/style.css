@@ -620,6 +620,7 @@ textarea { font: inherit; }
 .sign-preview .ic { width: 26px; height: 26px; margin: 0 auto 4px; color: var(--mint); }
 .sign-preview .sign { margin: 0; min-height: 32px; }
 .sign-preview .sign.empty { font-family: var(--font); font-size: 13px; line-height: 32px; color: var(--muted); transform: none; }
+.paste-actions { flex-wrap: wrap; }
 .sheet-actions { display: flex; gap: 8px; margin-top: 22px; }
 .sheet-actions .btn { flex: 1; justify-content: center; height: 50px; border-radius: 14px; font-size: 15px; }
 .sheet-actions .btn-ghost { background: var(--bg-soft); }
