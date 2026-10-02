@@ -373,10 +373,12 @@ const Parse = (() => {
     mccheyne: /^맥체인/,
   };
   // 탭 이름이나 페이지 아래쪽 안내처럼 내용이 아닌 줄 (여기서 섹션이 끝남)
-  const DU_STOP = /^(말씀|해설|에세이|아멘|묵상 완료|노트 쓰기|공지사항)$|명이 아멘하고|모바일 QT 앱|큐티 챌린지|서비스 이용약관|Copyright/;
+  const DU_STOP = /^(말씀|해설|에세이|아멘|묵상 완료|노트 쓰기|공지사항)$|^말씀\s*해설\s*에세이|명이 아멘하고|모바일 QT 앱|큐티 챌린지|서비스 이용약관|Copyright/;
+  // 앱에서 복사하면 탭 이름이 제목 줄 끝에 '말씀 해설 에세이'처럼 붙어 들어올 수 있음
+  const DU_TABS_TAIL = /\s*말씀\s*해설\s*에세이(\s*말씀)?\s*$/;
 
   function duplusBundle(raw) {
-    const ls = clean(raw).split('\n').map((l) => l.trim()).filter(Boolean);
+    const ls = clean(raw).split('\n').map((l) => l.replace(DU_TABS_TAIL, '').trim()).filter(Boolean);
     const at = {};
     for (const [k, re] of Object.entries(DU_MARKS)) at[k] = ls.findIndex((l) => re.test(l));
     if (at.scripture === -1 || (at.comm === -1 && at.essay === -1 && at.summary === -1)) return null;
