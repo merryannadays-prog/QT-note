@@ -12,13 +12,12 @@
     + 'S.browser_fallback_url=' + encodeURIComponent('https://play.google.com/store/apps/details?id=com.duranno.durannoplus') + ';end';
   const IS_ANDROID = /Android/i.test(navigator.userAgent);
   const WEB_TIP = '맨 위 카드에 두플러스 큐티 전체를 붙여넣으면 한 번에 채워져요.';
-  const WEB_KEYS = ['header', 'scripture', 'helper', 'prayer'];
-  const WEB_NAMES = { header: '말씀 범위·제목', scripture: '성경 본문', helper: '묵상 도우미', prayer: '오늘의 기도' };
+  const WEB_KEYS = ['header', 'scripture', 'prayer'];
+  const WEB_NAMES = { header: '말씀 범위·제목', scripture: '성경 본문', prayer: '오늘의 기도' };
 
   // 하루 페이지의 섹션 순서 (divider = 그룹 구분 제목)
   const LAYOUT = [
     { id: 'scripture', label: '성경 본문', type: 'scripture', hint: `소제목과 절 번호가 있는 본문 전체를 붙여넣어 주세요. ${WEB_TIP}` },
-    { id: 'helper', label: '묵상 도우미', type: 'prose', hint: `'묵상 도우미' 내용을 붙여넣어 주세요. ${WEB_TIP}` },
     { id: 'summary', label: '오늘의 말씀 요약', type: 'prose' },
     { divider: '본문 해설' },
     { id: 'comm', label: '본문 해설', type: 'commentary', repeat: true, hint: '소제목부터 마무리 질문까지 한 파트씩 붙여넣어 주세요' },
@@ -29,7 +28,7 @@
     { id: 'quote', label: '오늘의 명언', type: 'quote', hint: '명언과 “- 인물” 줄까지 붙여넣어 주세요' },
     { id: 'card', label: '오늘의 기도 카드', type: 'card' },
   ];
-  const ORDER = { scripture: 0, helper: 1, summary: 2, prayer: 40, essay: 50, oneverse: 51, quote: 52 };
+  const ORDER = { scripture: 0, summary: 2, prayer: 40, essay: 50, oneverse: 51, quote: 52 };
   const orderOf = (sid) => (sid.startsWith('comm') ? 10 + Number(sid.slice(4)) : ORDER[sid] ?? 99);
   const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -69,7 +68,7 @@
   // ───────── 데이터 ─────────
   const emptyDay = (date) => ({
     date,
-    raw: { header: '', scripture: '', helper: '', summary: '', comm: [''], prayer: '', essay: '', oneverse: '', quote: '' },
+    raw: { header: '', scripture: '', summary: '', comm: [''], prayer: '', essay: '', oneverse: '', quote: '' },
     marks: [],   // { k, c, t, l, o }
     note: '',
     finished: false,

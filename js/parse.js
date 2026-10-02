@@ -354,7 +354,6 @@ const Parse = (() => {
     return {
       header,
       scripture: scriptureText,
-      helper: section(iHelper, iPrayer),
       prayer: section(iPrayer, iHelper > iPrayer ? iHelper : -1),
     };
   }
@@ -394,15 +393,20 @@ const Parse = (() => {
       return out;
     };
 
-    // 머리글: 맨 처음 나오는 '책 장:절' 줄이 범위, 그다음 줄들이 오늘의 제목
+    // 머리글: '책 장:절' 줄이 범위, 나머지 짧은 줄들이 오늘의 제목
+    // (웹은 범위 → 제목 순서, 앱에서 복사하면 제목 → 범위 순서이거나 날짜·'생명의삶' 같은 줄이 섞일 수 있음)
     const first = Math.min(...[at.hymn, at.scripture].filter((i) => i !== -1));
-    const refRe = /^[가-힣]+\s*\d+\s*[:：]\s*\d+/;
-    const iRange = ls.findIndex((l, i) => i < first && refRe.test(l));
+    const refRe = /^[가-힣]+\s*\d+\s*(?:[:：]\s*\d+|장)/;
+    const NOT_TITLE = /^(\d{4}\s*[.\-/년].*|[월화수목금토일]요?일?|오늘|생명의삶|QT|큐티|말씀|해설|에세이|오늘의 QT|\d{1,2}\.\d{1,2})$/;
+    const top = ls.slice(0, first);
+    const iRange = top.findIndex((l) => refRe.test(l));
+    const isTitle = (l) => !NOT_TITLE.test(l) && !DU_STOP.test(l) && l.length <= 40 && !/[.?!]$/.test(l);
     let header = '';
     if (iRange !== -1) {
-      const title = [];
-      for (const l of ls.slice(iRange + 1, first)) { if (DU_STOP.test(l)) break; title.push(l); }
-      header = [ls[iRange], ...title].join('\n');
+      const after = [];
+      for (const l of top.slice(iRange + 1)) { if (!isTitle(l)) break; after.push(l); }
+      const before = top.slice(0, iRange).filter(isTitle);
+      header = [top[iRange], ...(after.length ? after : before)].join('\n');
     }
 
     // 본문 해설: 소제목('… 17:16~22')마다 한 파트
@@ -424,6 +428,15 @@ const Parse = (() => {
       else if (/^\d{1,3}\s/.test(sl[i])) verses.push({ n: Number(sl[i].split(' ')[0]), text: sl[i].replace(/^\d{1,3}\s*/, '') });
       else if (verses.length) verses[verses.length - 1].text += ' ' + sl[i];
     }
+    // 범위 줄을 못 찾았으면 한절 묵상('역대상 18장 8절')의 책·장 + 본문 절 번호로 범위를 만듦
+    if (!header && verses.length) {
+      const ov = sectionLines('oneverse').join(' ').match(/^(\S+?)\s*(\d+)\s*장/);
+      if (ov) {
+        const ns = verses.map((v) => v.n);
+        header = [`${ov[1]} ${ov[2]}:${Math.min(...ns)}~${Math.max(...ns)}`, ...top.filter(isTitle)].join('\n');
+      }
+    }
+
     const scriptureLines = [];
     for (const v of verses) {
       const h = heads.find((x) => x.start === v.n);
@@ -440,7 +453,6 @@ const Parse = (() => {
       date,
       header,
       scripture: scriptureLines.join('\n'),
-      helper: sectionLines('helper').join('\n'),
       summary: prose('summary'),
       comm: commTexts,
       prayer: prose('prayer'),
