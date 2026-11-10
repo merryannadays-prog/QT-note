@@ -3,8 +3,8 @@
   --bg: #ffffff;
   --bg-soft: #f5f7f5;
   --ink: #242c29;
-  --text: #4a524e;
-  --sub: #7a837f;
+  --text: #343e38;
+  --sub: #65736b;
   --muted: #a8b0ac;
   --line: #eaeeec;
 
@@ -29,13 +29,14 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 /* 글자만 한 단계 키우고, 폴드를 접고 펼칠 때 화면 폭에 맞춰 조정 */
-html { font-size: 17px; -webkit-text-size-adjust: 100%; }
+html { font-size: 19px; -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   background: #eef1ef;
   color: var(--text);
   font-family: var(--font);
   font-size: 1rem;
+  font-weight: 500;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   word-break: keep-all;
@@ -110,7 +111,7 @@ textarea { font: inherit; }
 }
 .hero-title {
   margin: 12px 0 0;
-  font-size: 1.15625rem; font-weight: 400; line-height: 1.55;
+  font-size: 1.15625rem; font-weight: 500; line-height: 1.55;
   color: rgba(255, 255, 255, .9);
   max-width: 17em;
 }
@@ -174,7 +175,7 @@ textarea { font: inherit; }
 
 /* 성경 본문 */
 .verse { display: grid; grid-template-columns: 1.875rem minmax(0, 1fr); column-gap: 8px; margin: 0 0 14px; }
-.vn { padding-top: 3px; font-size: 0.9375rem; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.vn { padding-top: 3px; font-size: 0.9375rem; font-weight: 500; color: var(--sub); font-variant-numeric: tabular-nums; }
 .vt { font-size: 1.03125rem; line-height: 1.95; color: var(--text); }
 
 /* 긴 글은 양쪽 정렬 + 글자 단위 줄바꿈 (오른쪽 끝을 가지런하게) */
@@ -234,7 +235,7 @@ textarea { font: inherit; }
   font-size: 0.78125rem; font-weight: 700; letter-spacing: .06em; color: var(--mint-deep);
 }
 .q-label .ic { width: 14px; height: 14px; }
-.q p { margin: 0; font-style: italic; font-size: 0.96875rem; line-height: 1.9; color: #4e5d57; }
+.q p { margin: 0; font-style: italic; font-size: 0.96875rem; line-height: 1.9; color: #3c4c43; }
 
 /* 묵상 에세이 */
 .essay-title { margin: 0 0 16px; font-size: 1.1875rem; font-weight: 700; color: var(--ink); letter-spacing: -.02em; line-height: 1.45; }
@@ -658,6 +659,6 @@ textarea { font: inherit; }
 
 @media (min-width: 600px) {
   :root { --pad: clamp(28px, 4.5vw, 40px); }
-  html { font-size: 18px; }
+  html { font-size: 20px; }
   #app { box-shadow: 0 0 0 1px rgba(0, 0, 0, .03), 0 20px 60px rgba(40, 60, 55, .08); }
 }
